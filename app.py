@@ -17,7 +17,18 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 def get_gemini_response(input, pdf_content, prompt):
     model = genai.GenerativeModel('gemini-pro-vision')
     response = model.generate_content([input, pdf_content[0], prompt])
-    return response.text
+    
+    # Check if the response is a single part
+    if len(response.parts) == 1:
+        return response.parts[0].text
+    else:
+        # If the response has multiple parts, we need to concatenate them
+        # or process them differently based on our use case
+        concatenated_text = ""
+        for part in response.parts:
+            concatenated_text += part.text
+        return concatenated_text
+
 
 def input_pdf_setup(uploaded_file):
     if uploaded_file is not None:
