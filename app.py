@@ -8,6 +8,7 @@ from PIL import Image
 import io
 import pdf2image
 import base64
+import fitz
 
 import google.generativeai as genai
 
@@ -15,29 +16,24 @@ os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_gemini_response(input, pdf_content, prompt):
-    model = genai.GenerativeModel('gemini-pro-vision')
-    response = model.generate_content([input, pdf_content[0], prompt])
+    model = genai.GenerativeModel('gemini-pro')
+    response = model.generate_content([input, pdf_content, prompt])
     return response.text
 
 def input_pdf_setup(uploaded_file):
     if uploaded_file is not None:
-        # Convert PDF to image
-        images = pdf2image.convert_from_bytes(uploaded_file.read())
-        # Take the first page for simplicity, or loop through images for all pages
-        first_page = images[0]
+        # Read the PDF file
+        document = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        # Initialize a list to hold the text of each page
+        text_parts = []
 
-        # Convert to bytes
-        img_byte_arr = io.BytesIO()
-        first_page.save(img_byte_arr, format='JPEG')
-        img_byte_arr = img_byte_arr.getvalue()
+        # Iterate over the pages of the PDF to extract the text
+        for page in document:
+            text_parts.append(page.get_text())
 
-        pdf_parts = [
-            {
-                "mime_type": "image/jpeg",
-                "data": base64.b64encode(img_byte_arr).decode()  # encode to base64
-            }
-        ]
-        return pdf_parts
+        # Concatenate the list into a single string with a space in between each part
+        pdf_text_content = " ".join(text_parts)
+        return pdf_text_content
     else:
         raise FileNotFoundError("No file uploaded")
 
@@ -61,6 +57,10 @@ submit2 = st.button("How Can I Improvise my Skills")
 submit3 = st.button("What are the Keywords That are Missing")
 
 submit4 = st.button("Percentage match")
+
+input_promp = st.text_input("Queries: Feel Free to Ask here")
+
+submit5 = st.button("Answer My Query")
 
 input_prompt1 = """
  You are an experienced Technical Human Resource Manager,your task is to review the provided resume against the job description. 
@@ -123,6 +123,20 @@ elif submit4:
     else:
         st.write("Please upload a PDF file to proceed.")
 
+elif submit5:
+    if uploaded_file is not None:
+        pdf_content = input_pdf_setup(uploaded_file)
+        response = get_gemini_response(input_promp, pdf_content, input_text)
+        st.subheader("The Response is")
+        st.write(response)
+    else:
+        st.write("Please upload a PDF file to proceed.")
 
-st.markdown("---")
-st.caption("Resume Expert - Making Job Applications Easier")
+footer = """
+---
+#### Made By [Koushik](https://www.linkedin.com/in/gandikota-sai-koushik/)
+For Queries, Reach out on [LinkedIn](https://www.linkedin.com/in/gandikota-sai-koushik/)  
+*Resume Expert - Making Job Applications Easier*
+"""
+
+st.markdown(footer, unsafe_allow_html=True)
