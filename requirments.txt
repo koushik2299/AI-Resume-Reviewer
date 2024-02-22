@@ -1,6 +1,6 @@
 streamlit
 google-generativeai
 python-dotenv
-PyPDF2
+PyMuPDF
 pdf2image
-fitz
+
